@@ -1,16 +1,20 @@
 def policy_gradient_loss(log_probs, rewards, gamma):
-    """
-    Compute REINFORCE policy gradient loss with mean-return baseline.
-    """
-    # Write code here
     import numpy as np
-    log_probs = np.array(log_probs)
-    rewards = np.array(rewards)
-    T = rewards.shape[0]
-    A = np.zeros(T)
-    A[T-1] = rewards[T-1]
-    for t in range(T-2, -1, -1):
-        A[t] = rewards[t] + gamma * A[t+1]
-    A = A - np.mean(A)
-    ans = -np.mean(log_probs * A)
-    return float(ans)
+
+    log_probs = np.asarray(log_probs, dtype=float)
+    rewards = np.asarray(rewards, dtype=float)
+
+    if gamma == 0:
+        return float(-np.mean(log_probs * (rewards - np.mean(rewards))))
+
+    T = len(rewards)
+
+    discounts = gamma ** np.arange(T)
+
+    returns = np.cumsum((rewards * discounts)[::-1])[::-1] / discounts
+
+    advantages = returns - returns.mean()
+
+    loss = -np.mean(log_probs * advantages)
+
+    return float(loss)
