@@ -1,22 +1,30 @@
 import numpy as np
-from collections import Counter
-import math
 
 def tfidf_vectorizer(documents):
-    """
-    Build TF-IDF matrix from a list of text documents.
-    Returns tuple of (tfidf_matrix, vocabulary).
-    """
-    vocabulary = sorted(list(set(w for d in documents for w in d.split())))
-    stoi = {s:i for i,s in enumerate(vocabulary)}
-    tf, idf, N = [], np.zeros(len(vocabulary)), len(documents)
-    for d in documents:
-        cnt = Counter(d.split())
-        total = len(d.split())
-        tf.append([cnt[v] / total for v in vocabulary])
-        for k in cnt.keys():
-            idf[stoi[k]] += 1
-    tf = np.array(tf)
-    idf = np.where(idf > 0, np.log(N / idf), 0)
-    tfidf = tf * idf[None,:]
-    return (tfidf, vocabulary)
+    tokenized = [d.split() for d in documents]
+    vocabulary = sorted(set(w for doc in tokenized for w in doc))
+    stoi = {w: i for i, w in enumerate(vocabulary)}
+
+    rows = []
+    cols = []
+
+    for i, words in enumerate(tokenized):
+        for w in words:
+            rows.append(i)
+            cols.append(stoi[w])
+
+    N = len(documents)
+    V = len(vocabulary)
+
+    tf_counts = np.zeros((N, V), dtype=float)
+    np.add.at(tf_counts, (rows, cols), 1)
+
+    doc_lengths = np.array([len(words) for words in tokenized])[:, None]
+    tf = tf_counts / doc_lengths
+
+    df = (tf_counts > 0).sum(axis=0)
+    idf = np.where(df > 0, np.log(N / df), 0)
+
+    tfidf = tf * idf
+
+    return tfidf, vocabulary
